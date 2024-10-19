@@ -1,4 +1,3 @@
-// src/commands/init.ts
 import { Command } from "commander"
 import prompts from "prompts"
 

@@ -36,7 +36,7 @@
     "pub:next": "pnpm build && pnpm publish --no-git-checks --access public --tag next",
     "pub:release": "pnpm build && pnpm publish --access public",
     "test": "vitest run",
-    "link-cli": "pnpm --global unlink admin-boil && pnpm --global link"
+    "link-cli": "(pnpm --global unlink admin-boil || true) && pnpm --global link"
   },
   "dependencies": {
     "@antfu/ni": "^0.21.4",
