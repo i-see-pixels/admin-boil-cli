@@ -1,5 +1,6 @@
 import { Command } from "commander"
-import { promises as fs } from "fs"
+import { promises } from "fs"
+import fs from "fs"
 import prompts from "prompts"
 import { z } from "zod"
 import path from "path"
@@ -22,6 +23,7 @@ import {
 } from "@/src/utils/get-config"
 import { spinner } from "../utils/spinner"
 import { Ora } from "ora"
+import GithubRegistry from "../utils/registry"
 
 export const initOptionsSchema = z.object({
   cwd: z.string(),
@@ -111,6 +113,10 @@ export async function runInit(
     }
   }
 
+  // for (let option in options) {
+  //   logger.info(option + ": " + options[option as keyof typeof options])
+  // }
+
   //Copy files
   const copyFilesSpinner = spinner(`Copying files to your project.`).start()
   await copyFiles(options, copyFilesSpinner)
@@ -192,9 +198,13 @@ async function copyFiles(
   },
   spinner: Ora
 ) {
-  //write a delay function
-  await new Promise((resolve) => setTimeout(resolve, 1000))
-
-  //replicate a failed promise
-  spinner.fail()
+  try {
+    const projectInfo = await getProjectInfo(options.cwd)
+    const registry = new GithubRegistry(options, projectInfo)
+    registry.fetchAndWriteFiles()
+    spinner.succeed()
+  } catch (error: any) {
+    spinner.fail()
+    logger.error("Error fetching file tree:", error.message)
+  }
 }
