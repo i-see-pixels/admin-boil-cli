@@ -43,3 +43,26 @@ export async function getPackageRunner(cwd: string) {
 
   return "npx"
 }
+
+/**
+ * Constructs the install command based on the package manager.
+ * @param pkgManager - The package manager being used.
+ * @param packages - Array of packages to install.
+ * @param isDev - Whether the packages are dev dependencies.
+ */
+export function getInstallCommand(
+  pkgManager: "npm" | "yarn" | "pnpm" | "bun",
+  packages: string[],
+  isDev: boolean
+): string {
+  switch (pkgManager) {
+    case "yarn":
+      return `yarn add ${isDev ? "-D " : ""}${packages.join(" ")}`
+    case "pnpm":
+      return `pnpm add ${isDev ? "-D " : ""}${packages.join(" ")}`
+    case "bun":
+      return `bun add ${isDev ? "--dev " : ""}${packages.join(" ")}`
+    default:
+      return `npm install ${isDev ? "-D " : ""}${packages.join(" ")}`
+  }
+}

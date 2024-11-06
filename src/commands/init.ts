@@ -1,6 +1,4 @@
 import { Command } from "commander"
-import { promises } from "fs"
-import fs from "fs"
 import prompts from "prompts"
 import { z } from "zod"
 import path from "path"
@@ -24,6 +22,8 @@ import {
 import { spinner } from "../utils/spinner"
 import { Ora } from "ora"
 import GithubRegistry from "../utils/registry"
+import { installDependencies } from "../utils/install-deps"
+import { installShadcnComps } from "../utils/install-shadcn-comps"
 
 export const initOptionsSchema = z.object({
   cwd: z.string(),
@@ -34,6 +34,19 @@ export const initOptionsSchema = z.object({
   isNewProject: z.boolean(),
   srcDir: z.boolean().optional(),
 })
+
+const deps = {
+  default: [
+    "@neondatabase/serverless",
+    "@tanstack/react-table",
+    "@upstash/redis",
+    "drizzle-orm",
+    "jotai",
+    "next-themes",
+    "recharts",
+  ],
+  dev: ["drizzle-kit", "tsx"],
+}
 
 export const init = new Command()
   .name("init")
@@ -118,15 +131,13 @@ export async function runInit(
   // }
 
   //Copy files
-  const copyFilesSpinner = spinner(`Copying files to your project.`).start()
-  await copyFiles(options, copyFilesSpinner)
+  await copyFiles(options)
 
   //Install dependencies
-  const installDependenciesSpinner = spinner(
-    `Installing dependencies...`
-  ).start()
-  // await copyFiles(options)
-  installDependenciesSpinner.succeed()
+  await installDependencies(deps.default, deps.dev, options)
+
+  //Install shadcn components
+  await installShadcnComps(options, projectInfo)
 
   const fullConfig = await resolveConfigPaths(options.cwd, config)
 
@@ -188,6 +199,7 @@ async function promptForConfig(defaultConfig: Config | null = null) {
       // TODO: fix this.
       lib: options.components.replace(/\/components$/, "lib"),
       hooks: options.components.replace(/\/components$/, "hooks"),
+      iconLibrary: defaultConfig?.iconLibrary,
     },
   })
 }
@@ -195,16 +207,16 @@ async function promptForConfig(defaultConfig: Config | null = null) {
 async function copyFiles(
   options: z.infer<typeof initOptionsSchema> & {
     skipPreflight?: boolean
-  },
-  spinner: Ora
+  }
 ) {
+  const copyFilesSpinner = spinner(`Copying files to your project.`).start()
   try {
     const projectInfo = await getProjectInfo(options.cwd)
     const registry = new GithubRegistry(options, projectInfo)
     registry.fetchAndWriteFiles()
-    spinner.succeed()
+    copyFilesSpinner.succeed()
   } catch (error: any) {
-    spinner.fail()
+    copyFilesSpinner.fail()
     logger.error("Error fetching file tree:", error.message)
   }
 }
