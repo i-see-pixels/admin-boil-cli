@@ -213,10 +213,11 @@ async function copyFiles(
   try {
     const projectInfo = await getProjectInfo(options.cwd)
     const registry = new GithubRegistry(options, projectInfo)
-    registry.fetchAndWriteFiles()
-    copyFilesSpinner.succeed()
+    await registry.fetchAndWriteFiles()
+    copyFilesSpinner?.succeed("Files copied to your project.")
   } catch (error: any) {
-    copyFilesSpinner.fail()
+    copyFilesSpinner?.fail()
     logger.error("Error fetching file tree:", error.message)
+    process.exit(1)
   }
 }

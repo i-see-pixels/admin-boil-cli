@@ -57,12 +57,12 @@ export function getInstallCommand(
 ): string {
   switch (pkgManager) {
     case "yarn":
-      return `yarn add ${isDev ? "-D " : ""}${packages.join(" ")}`
+      return `yarn add --silent ${isDev ? "-D " : ""}${packages.join(" ")}`
     case "pnpm":
-      return `pnpm add ${isDev ? "-D " : ""}${packages.join(" ")}`
+      return `pnpm add --silent ${isDev ? "-D " : ""}${packages.join(" ")}`
     case "bun":
-      return `bun add ${isDev ? "--dev " : ""}${packages.join(" ")}`
+      return `bun add --silent ${isDev ? "--dev " : ""}${packages.join(" ")}`
     default:
-      return `npm install ${isDev ? "-D " : ""}${packages.join(" ")}`
+      return `npm install --silent ${isDev ? "-D " : ""}${packages.join(" ")}`
   }
 }

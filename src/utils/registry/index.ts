@@ -26,6 +26,7 @@ const sourceFiles = [
   "drizzle",
   "app/dashboard",
   "drizzle.config.ts",
+  "middleware.ts",
 ]
 
 class GithubRegistry {
@@ -104,7 +105,7 @@ class GithubRegistry {
 
       data.pipe(writer)
 
-      console.log(`Downloaded: ${file.path}`)
+      // console.log(`Downloaded: ${file.path}`)
 
       // Wait until the file is fully written
       await new Promise((resolve, reject) => {
@@ -119,7 +120,7 @@ class GithubRegistry {
   async fetchAndWriteFiles() {
     const excludeFiles = ["components/ui", "lib/utils.ts"]
     for (const sourceFile of sourceFiles) {
-      const files = await this.fetchFileTree(sourceFile)
+      const files = await this.fetchFileTree(sourceFile, excludeFiles)
 
       for (const file of files) {
         if (file.type === "file") {

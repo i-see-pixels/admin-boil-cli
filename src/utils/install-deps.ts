@@ -32,9 +32,9 @@ export async function installDependencies(
       if (stderr) logger.warn(stderr)
     }
 
-    installSpinner.succeed("Dependencies installed successfully!")
+    installSpinner?.succeed("Dependencies installed successfully!")
   } catch (error) {
-    installSpinner.fail("Failed to install dependencies.")
+    installSpinner?.fail("Failed to install dependencies.")
     logger.error((error as Error).message)
     process.exit(1)
   }

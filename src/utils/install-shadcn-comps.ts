@@ -6,6 +6,7 @@ import fs from "fs-extra"
 import { spinner } from "./spinner"
 import path from "path"
 import { logger } from "./logger"
+import { highlighter } from "./highlighter"
 
 const npxCmd = process.platform === "win32" ? "npx.cmd" : "npx"
 
@@ -38,11 +39,17 @@ export async function installShadcnComps(
       (component) => !components_cwd.includes(component)
     )
 
-    await runShadcnAddCommand(components_to_add)
+    if (components_to_add.length != 0) {
+      await runShadcnAddCommand(components_to_add)
+    }
 
-    installSpinner.succeed("Shadcn components installed successfully!")
+    installSpinner?.succeed()
+
+    for (const component of components_to_add) {
+      logger.info(`- Added ${highlighter.info(component)}`)
+    }
   } catch (error) {
-    installSpinner.fail("Failed to install shadcn components.")
+    installSpinner?.fail("Failed to install shadcn components.")
     logger.error((error as Error).message)
     process.exit(1)
   }
