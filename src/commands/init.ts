@@ -20,7 +20,6 @@ import {
   type Config,
 } from "@/src/utils/get-config"
 import { spinner } from "../utils/spinner"
-import { Ora } from "ora"
 import GithubRegistry from "../utils/registry"
 import { installDependencies } from "../utils/install-deps"
 import { installShadcnComps } from "../utils/install-shadcn-comps"
@@ -130,6 +129,8 @@ export async function runInit(
   //   logger.info(option + ": " + options[option as keyof typeof options])
   // }
 
+  // const optionConfig = await getPromptConfig(options)
+
   //Copy files
   await copyFiles(options)
 
@@ -202,6 +203,27 @@ async function promptForConfig(defaultConfig: Config | null = null) {
       iconLibrary: defaultConfig?.iconLibrary,
     },
   })
+}
+
+async function getPromptConfig(
+  inlineOptions: z.infer<typeof initOptionsSchema>
+) {
+  const options = await prompts([
+    {
+      type: "toggle",
+      name: "database",
+      message: `Would you like to setup a ${highlighter.info(
+        "PostgreSQL with Drizzle"
+      )} (recommended)?`,
+      initial: true,
+      active: "yes",
+      inactive: "no",
+    },
+  ])
+
+  return {
+    database: options.database,
+  }
 }
 
 async function copyFiles(

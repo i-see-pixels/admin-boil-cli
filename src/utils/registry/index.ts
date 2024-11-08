@@ -35,6 +35,18 @@ class GithubRegistry {
   private OPTIONS: z.infer<typeof initOptionsSchema>
   private PROJECT_INFO: any
 
+  private sourceFiles = [
+    "components",
+    "config",
+    "lib",
+    "utils",
+    "hooks",
+    "drizzle",
+    "app/dashboard",
+    "drizzle.config.ts",
+    "middleware.ts",
+  ]
+
   public errors: Record<string, boolean>
 
   constructor(options: z.infer<typeof initOptionsSchema>, projectInfo: any) {
@@ -105,8 +117,6 @@ class GithubRegistry {
 
       data.pipe(writer)
 
-      // console.log(`Downloaded: ${file.path}`)
-
       // Wait until the file is fully written
       await new Promise((resolve, reject) => {
         writer.on("finish", resolve)
@@ -119,13 +129,12 @@ class GithubRegistry {
 
   async fetchAndWriteFiles() {
     const excludeFiles = ["components/ui", "lib/utils.ts"]
-    for (const sourceFile of sourceFiles) {
+    for (const sourceFile of this.sourceFiles) {
       const files = await this.fetchFileTree(sourceFile, excludeFiles)
 
       for (const file of files) {
         if (file.type === "file") {
           await this.downloadAndSaveFile(file)
-          // console.log(`Downloading: ${file.path}`)
         }
       }
     }
