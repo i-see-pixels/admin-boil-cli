@@ -23,6 +23,8 @@ import { spinner } from "../utils/spinner"
 import GithubRegistry from "../utils/registry"
 import { installDependencies } from "../utils/install-deps"
 import { installShadcnComps } from "../utils/install-shadcn-comps"
+import { admin_boilInstance } from "../utils/axiosinstance"
+import axios from "axios"
 
 export const initOptionsSchema = z.object({
   cwd: z.string(),
@@ -131,18 +133,24 @@ export async function runInit(
 
   // const optionConfig = await getPromptConfig(options)
 
-  //Copy files
-  await copyFiles(options)
+  const verification = await apiVerification()
 
-  //Install dependencies
-  await installDependencies(deps.default, deps.dev, options)
+  if (verification.ok) {
+    //Copy files
+    await copyFiles(options)
 
-  //Install shadcn components
-  await installShadcnComps(options, projectInfo)
+    //Install dependencies
+    await installDependencies(deps.default, deps.dev, options)
 
-  const fullConfig = await resolveConfigPaths(options.cwd, config)
+    //Install shadcn components
+    await installShadcnComps(options, projectInfo)
 
-  return fullConfig
+    const fullConfig = await resolveConfigPaths(options.cwd, config)
+
+    return fullConfig
+  } else {
+    process.exit(1)
+  }
 }
 
 async function promptForConfig(defaultConfig: Config | null = null) {
@@ -242,4 +250,70 @@ async function copyFiles(
     logger.error("Error fetching file tree:", error.message)
     process.exit(1)
   }
+}
+
+async function apiVerification() {
+  const verificationSpinner = spinner("Verifying API key...")
+  const options = await prompts([
+    {
+      type: "text",
+      name: "email",
+      message: "Please enter your email:",
+      validate: (value) =>
+        value ? true : "Email cannot be empty, please re-enter:",
+    },
+    {
+      type: "invisible",
+      name: "apiKey",
+      message: `Please enter your ${highlighter.info("admin-boil API key")}:`,
+      validate: (value) =>
+        value ? true : "API key cannot be empty, please re-enter:",
+    },
+  ])
+
+  verificationSpinner?.start()
+
+  const { apiKey, email } = options
+
+  if (!apiKey || !email) {
+    logger.error("API key or email not provided.")
+    process.exit(1)
+  }
+
+  if (apiKey === "\x16" || email === "\x16") {
+    logger.error("API key or email not entered properly.")
+    process.exit(1)
+  }
+
+  let status = false
+
+  try {
+    const api_response = await admin_boilInstance.post("/verify-api-key", {
+      apiKey,
+      email,
+    })
+    status = api_response.status === 200
+    verificationSpinner.succeed("API key verified successfully.")
+  } catch (error) {
+    verificationSpinner?.fail("Error verifying API key.")
+    if (axios.isAxiosError(error)) {
+      // Axios-specific error handling
+      if (error.response) {
+        // Server responded with a status code outside the 2xx range
+        console.error("Error Status Code:", error.response.status)
+        console.error("Error Response Data:", error.response.data)
+      } else if (error.request) {
+        // No response was received after the request was sent
+        console.error("No response received:", error.request)
+      } else {
+        // Error occurred during setting up the request
+        console.error("Error Message:", error.message)
+      }
+    } else {
+      // Non-Axios error (could be a different kind of error)
+      console.error("Unexpected Error:", error)
+    }
+  }
+
+  return { ok: status }
 }

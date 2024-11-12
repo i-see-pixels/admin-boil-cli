@@ -11,3 +11,10 @@ export const githubInstance = axios.create({
     Accept: "application/json",
   },
 })
+
+export const admin_boilInstance = axios.create({
+  baseURL: "http://localhost:3000/api",
+  headers: {
+    Accept: "application/json",
+  },
+})
