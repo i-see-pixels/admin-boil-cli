@@ -1,6 +1,6 @@
 {
   "name": "admin-boil",
-  "version": "0.1.0",
+  "version": "1.0.0",
   "description": "Add admin-boil dashboard to your project",
   "publishConfig": {
     "access": "restricted"

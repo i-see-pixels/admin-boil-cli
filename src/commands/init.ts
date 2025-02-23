@@ -127,17 +127,11 @@ export async function runInit(
     }
   }
 
-  // for (let option in options) {
-  //   logger.info(option + ": " + options[option as keyof typeof options])
-  // }
-
-  // const optionConfig = await getPromptConfig(options)
-
   const verification = await apiVerification()
 
   if (verification.ok) {
     //Copy files
-    await copyFiles(options)
+    await copyFiles(options, verification.user)
 
     //Install dependencies
     await installDependencies(deps.default, deps.dev, options)
@@ -237,12 +231,13 @@ async function getPromptConfig(
 async function copyFiles(
   options: z.infer<typeof initOptionsSchema> & {
     skipPreflight?: boolean
-  }
+  },
+  user: { email: string; plan: string; github_key: string }
 ) {
   const copyFilesSpinner = spinner(`Copying files to your project.`).start()
   try {
     const projectInfo = await getProjectInfo(options.cwd)
-    const registry = new GithubRegistry(options, projectInfo)
+    const registry = new GithubRegistry(options, projectInfo, user)
     await registry.fetchAndWriteFiles()
     copyFilesSpinner?.succeed("Files copied to your project.")
   } catch (error: any) {
@@ -286,6 +281,7 @@ async function apiVerification() {
   }
 
   let status = false
+  let user_data = null
 
   try {
     const api_response = await admin_boilInstance.post("/verify-api-key", {
@@ -293,7 +289,16 @@ async function apiVerification() {
       email,
     })
     status = api_response.status === 200
-    verificationSpinner.succeed("API key verified successfully.")
+
+    if (status) {
+      user_data = {
+        ...api_response.data.user,
+        github_key: api_response.data.github_key,
+      }
+      verificationSpinner.succeed(api_response.data.message)
+    } else {
+      verificationSpinner.fail(api_response.data.message)
+    }
   } catch (error) {
     verificationSpinner?.fail("Error verifying API key.")
     if (axios.isAxiosError(error)) {
@@ -315,5 +320,5 @@ async function apiVerification() {
     }
   }
 
-  return { ok: status }
+  return { ok: status, user: user_data }
 }

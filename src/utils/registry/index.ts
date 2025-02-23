@@ -1,39 +1,18 @@
 import path from "path"
 import fs from "fs"
-import { githubInstance } from "../axiosinstance"
 import { initOptionsSchema } from "@/src/commands/init"
 import { z } from "zod"
 import * as ERRORS from "@/src/utils/errors"
-
-// const filePaths = [
-//   { source: "components", target: "components" },
-//   { source: "config", target: "config" },
-//   { source: "lib", target: "lib" },
-//   { source: "utils", target: "utils" },
-//   { source: "hooks", target: "hooks" },
-//   { source: "drizzle", target: "drizzle" },
-//   { source: "drizzle.config.ts", target: "drizzle.config.ts" },
-//   { source: "app/dashboard", target: "app/dashboard" },
-//   // middleware.ts file outside src if isSrcDir true
-// ]
-
-const sourceFiles = [
-  "components",
-  "config",
-  "lib",
-  "utils",
-  "hooks",
-  "drizzle",
-  "app/dashboard",
-  "drizzle.config.ts",
-  "middleware.ts",
-]
+import axios from "axios"
 
 class GithubRegistry {
   private OWNER
   private REPO
+  private branch
   private OPTIONS: z.infer<typeof initOptionsSchema>
   private PROJECT_INFO: any
+  private GITHUB_API_URL = "https://api.github.com"
+  private githubInstance
 
   private sourceFiles = [
     "components",
@@ -49,12 +28,25 @@ class GithubRegistry {
 
   public errors: Record<string, boolean>
 
-  constructor(options: z.infer<typeof initOptionsSchema>, projectInfo: any) {
+  constructor(
+    options: z.infer<typeof initOptionsSchema>,
+    projectInfo: any,
+    user: { email: string; plan: string; github_key: string }
+  ) {
     this.OWNER = "i-see-pixels"
     this.REPO = "admin-boil"
+    this.branch = user.plan === "basic" ? "basic" : "main"
     this.OPTIONS = options
     this.PROJECT_INFO = projectInfo
     this.errors = {}
+
+    this.githubInstance = axios.create({
+      baseURL: this.GITHUB_API_URL,
+      headers: {
+        Authorization: `Bearer ${user.github_key}`,
+        Accept: "application/json",
+      },
+    })
   }
 
   private isExcluded(path: string, exclude: string[]): boolean {
@@ -62,8 +54,8 @@ class GithubRegistry {
   }
 
   async fetchFileTree(path = "", exclude: string[] = []): Promise<any[]> {
-    const { data } = await githubInstance.get(
-      `/repos/${this.OWNER}/${this.REPO}/contents/${path}`
+    const { data } = await this.githubInstance.get(
+      `/repos/${this.OWNER}/${this.REPO}/contents/${path}?ref=${this.branch}`
     )
     const files: any[] = []
 
@@ -111,7 +103,7 @@ class GithubRegistry {
 
       // Save the file
       const writer = fs.createWriteStream(localFilePath)
-      const { data } = await githubInstance.get(file.download_url, {
+      const { data } = await this.githubInstance.get(file.download_url, {
         responseType: "stream",
       })
 
