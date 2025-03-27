@@ -15,15 +15,14 @@ class GithubRegistry {
   private githubInstance
 
   private sourceFiles = [
+    "app/dashboard",
+    "app/globals.css",
     "components",
     "config",
-    "lib",
-    "utils",
-    "hooks",
     "drizzle",
-    "app/dashboard",
+    "hooks",
+    "lib",
     "drizzle.config.ts",
-    "middleware.ts",
   ]
 
   public errors: Record<string, boolean>
@@ -130,6 +129,13 @@ class GithubRegistry {
         }
       }
     }
+  }
+
+  async fetchFileContent(filePath: string): Promise<string> {
+    const { data } = await this.githubInstance.get(
+      `/repos/${this.OWNER}/${this.REPO}/contents/${filePath}?ref=${this.branch}`
+    )
+    return data.content
   }
 }
 

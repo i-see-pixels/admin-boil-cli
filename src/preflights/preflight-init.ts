@@ -7,11 +7,38 @@ import { logger } from "@/src/utils/logger"
 import { spinner } from "@/src/utils/spinner"
 import fs from "fs-extra"
 import { z } from "zod"
+import { execSync } from "child_process"
 
 export async function preFlightInit(
   options: z.infer<typeof initOptionsSchema>
 ) {
   const errors: Record<string, boolean> = {}
+
+  // Check for uncommitted changes
+  try {
+    const gitStatus = execSync("git status --porcelain", {
+      cwd: options.cwd,
+    }).toString()
+
+    if (gitStatus.trim()) {
+      logger.break()
+      logger.warn(
+        `There are uncommitted changes in your directory at ${highlighter.info(
+          options.cwd
+        )}.`
+      )
+      logger.warn(`Please commit or stash your changes before proceeding.`)
+      logger.break()
+      process.exit(1)
+    }
+  } catch (error) {
+    logger.break()
+    logger.error(
+      `Failed to check for uncommitted changes. Ensure Git is installed and initialized in your project directory.`
+    )
+    logger.break()
+    process.exit(1)
+  }
 
   if (
     !fs.existsSync(options.cwd) ||
@@ -76,10 +103,30 @@ export async function preFlightInit(
     )}.`
   )
 
-  const tailwindSpinner = spinner(`Validating Tailwind CSS.`, {
+  let tailwindSpinnerMessage = "Validating Tailwind CSS."
+
+  if (projectInfo.tailwindVersion === "v4") {
+    tailwindSpinnerMessage = `Validating Tailwind CSS config. Found ${highlighter.info(
+      "v4"
+    )}.`
+  }
+
+  const tailwindSpinner = spinner(tailwindSpinnerMessage, {
     silent: options.silent,
   }).start()
-  if (!projectInfo?.tailwindConfigFile || !projectInfo?.tailwindCssFile) {
+  if (
+    projectInfo.tailwindVersion === "v3" &&
+    (!projectInfo?.tailwindConfigFile || !projectInfo?.tailwindCssFile)
+  ) {
+    errors[ERRORS.TAILWIND_NOT_CONFIGURED] = true
+    tailwindSpinner?.fail()
+  } else if (
+    projectInfo.tailwindVersion === "v4" &&
+    !projectInfo?.tailwindCssFile
+  ) {
+    errors[ERRORS.TAILWIND_NOT_CONFIGURED] = true
+    tailwindSpinner?.fail()
+  } else if (!projectInfo.tailwindVersion) {
     errors[ERRORS.TAILWIND_NOT_CONFIGURED] = true
     tailwindSpinner?.fail()
   } else {
@@ -105,7 +152,7 @@ export async function preFlightInit(
         )}.`
       )
       logger.error(
-        `It is likely you do not have Tailwind CSS installed or have an invalid configuration.`
+        `It is likely you do not have Tailwind CSS v4 installed or have an invalid configuration.`
       )
       logger.error(`Install Tailwind CSS then try again.`)
       if (projectInfo?.framework.links.tailwind) {

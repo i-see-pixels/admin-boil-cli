@@ -12,12 +12,11 @@ const npxCmd = process.platform === "win32" ? "npx.cmd" : "npx"
 
 export async function installShadcnComps(
   options: z.infer<typeof initOptionsSchema>,
-  projectInfo: any
+  projectInfo: any,
+  githubRepo: GithubRegistry
 ) {
   const installSpinner = spinner("Installing shadcn components...\n").start()
   try {
-    const githubRepo = new GithubRegistry(options, projectInfo)
-
     const files_repo = await githubRepo.fetchFileTree("components/ui")
 
     const components_repo = (await files_repo).map((file) =>
@@ -66,17 +65,18 @@ async function runShadcnAddCommand(components: string[]) {
     )
 
     // Function to handle input stream responses
-    const respondToPrompts = () => {
-      process.stdin?.write("n\n")
+    const respondToPrompts = (output: string) => {
+      if (output.includes("How would you like to proceed?")) {
+        process.stdin?.write("\n")
+      } else if (output.includes("overwrite")) {
+        process.stdin?.write("n\n")
+      }
     }
 
     // Listen for data from stdout
     process.stdout?.on("data", (data: Buffer) => {
       const output = data.toString()
-      // Check for the overwrite prompt message
-      if (output.includes("overwrite")) {
-        respondToPrompts()
-      }
+      respondToPrompts(output)
     })
 
     process.on("close", (code) => {

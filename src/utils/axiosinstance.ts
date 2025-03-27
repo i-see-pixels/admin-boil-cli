@@ -1,7 +1,7 @@
 import axios from "axios"
 
 export const admin_boilInstance = axios.create({
-  baseURL: "http://localhost:3000/api",
+  baseURL: "https://admin-boil.vercel.app/api",
   headers: {
     Accept: "application/json",
   },

@@ -36,19 +36,6 @@ export const initOptionsSchema = z.object({
   srcDir: z.boolean().optional(),
 })
 
-const deps = {
-  default: [
-    "@neondatabase/serverless",
-    "@tanstack/react-table",
-    "@upstash/redis",
-    "drizzle-orm",
-    "jotai",
-    "next-themes",
-    "recharts",
-  ],
-  dev: ["drizzle-kit", "tsx"],
-}
-
 export const init = new Command()
   .name("init")
   .description("initialize your project and install dependencies")
@@ -130,14 +117,20 @@ export async function runInit(
   const verification = await apiVerification()
 
   if (verification.ok) {
-    //Copy files
-    await copyFiles(options, verification.user)
+    const githubRepo = new GithubRegistry(
+      options,
+      projectInfo,
+      verification.user
+    )
 
-    //Install dependencies
-    await installDependencies(deps.default, deps.dev, options)
+    //Copy files
+    await copyFiles(options, githubRepo)
 
     //Install shadcn components
-    await installShadcnComps(options, projectInfo)
+    await installShadcnComps(options, projectInfo, githubRepo)
+
+    //Install dependencies
+    await installDependencies(options, githubRepo)
 
     const fullConfig = await resolveConfigPaths(options.cwd, config)
 
@@ -232,12 +225,10 @@ async function copyFiles(
   options: z.infer<typeof initOptionsSchema> & {
     skipPreflight?: boolean
   },
-  user: { email: string; plan: string; github_key: string }
+  registry: GithubRegistry
 ) {
   const copyFilesSpinner = spinner(`Copying files to your project.`).start()
   try {
-    const projectInfo = await getProjectInfo(options.cwd)
-    const registry = new GithubRegistry(options, projectInfo, user)
     await registry.fetchAndWriteFiles()
     copyFilesSpinner?.succeed("Files copied to your project.")
   } catch (error: any) {
@@ -258,7 +249,7 @@ async function apiVerification() {
         value ? true : "Email cannot be empty, please re-enter:",
     },
     {
-      type: "invisible",
+      type: "text",
       name: "apiKey",
       message: `Please enter your ${highlighter.info("admin-boil API key")}:`,
       validate: (value) =>
