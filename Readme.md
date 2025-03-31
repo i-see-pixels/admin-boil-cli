@@ -10,7 +10,7 @@ admin-boil CLI is a command-line tool to add the admin-boil dashboard to your pr
 
 ## Installation
 
-No installation needed just use the commands to get the dashboard in your project. Make sure to visit [admin-boil.dev](https://admin-boil.vercel.app/docs/get-started) to get started!
+No installation needed just use the commands to get the dashboard in your project. Make sure to visit [admin-boil.dev](https://admin-boil.dev/docs/get-started) to get started!
 
 ## Usage
 
